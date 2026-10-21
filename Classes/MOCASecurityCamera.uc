@@ -1,0 +1,1 @@
+class MOCASecurityCamera extends RTCamera;
