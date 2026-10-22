@@ -77,6 +77,8 @@ function OnCameraUtilized()
 		return;
 	}
 
+	Log("Camera is being utilized");
+
 	bUtilized = true;
 	PowerManager.CurrentUsage += PowerUsage;
 	UpdateSurface();
@@ -90,9 +92,17 @@ function OnCameraNotUtilized()
 		return;
 	}
 
+	Log("Camera is not being utilized");
+
 	bUtilized = false;
 	PowerManager.CurrentUsage -= PowerUsage;
 	UpdateSurface(true);
+}
+
+function SetCamera(int CameraIndex)
+{
+	CurrCamera = CameraIndex;
+	OnCameraChanged(CameraIndex);
 }
 
 // Called when the camera is changed to another camera
@@ -215,5 +225,6 @@ defaultproperties
 	CameraSurfaceTag="CameraScreen"
 	
 	BlankScreenTexture=Texture'HGame.Icons.leftPanel'
+	BlockedScreenTexture=Texture'HGame.Icons.leftPanel'
 	CameraBlockDuration=5.0
 }

@@ -92,7 +92,10 @@ function OnNewHour(int Hour)
 	}
 }
 
-function OnStartNight(int NewNight);
+function OnStartNight()
+{
+	StartMovementTimer();
+}
 
 function OnNightEnd()
 {
@@ -110,6 +113,7 @@ function OnNightEnd()
 function SetAILevel(int NewLevel)
 {
 	NewLevel = Clamp(NewLevel, 0, MaxAI);
+	Log("Setting AI to " $ NewLevel);
 	AILevel = NewLevel;
 }
 
@@ -120,6 +124,8 @@ function bool ShouldMove()
 	local int rnd;
 	rnd = Rand(MaxAI + 1);
 	rnd = Clamp(rnd, 1, MaxAI);
+
+	Log("Trying to move with result " $ AILevel $ " - " $ rnd);
 
 	// Return whether or not our AILevel is greater than the random number
 	return AILevel >= rnd;
@@ -155,6 +161,7 @@ function HandleMovementOpportunity()
 
 		CurrDP = NewDP;
 		SetLocation(NewDP.Location);
+		SetRotation(NewDP.Rotation);
 		PlayAnim(CurrDP.AnimToPlay);
 	}
 }
@@ -214,6 +221,8 @@ function bool CutCommand_SetAI(string command, optional string cue, optional boo
 	local int NewAILevel;
 	NewAILevel = AtoI(ParseDelimitedString( command, " ", 2, false ));
 	SetAILevel(NewAILevel);
+	CutCue(cue);
+	return NewAILevel == AILevel;
 }
 
 

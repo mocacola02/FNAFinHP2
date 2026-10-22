@@ -1,4 +1,4 @@
-class MOCAFNAFManagers extends Actor;
+class MOCAFNAFManagers extends HPawn;
 
 function bool IsFacingOther(Actor SourceActor, Actor Other, float MinDot)
 {

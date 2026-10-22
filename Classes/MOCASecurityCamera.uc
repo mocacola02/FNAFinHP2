@@ -39,13 +39,18 @@ event Tick(float DeltaTime)
 			local int rnd;
 			rnd = Rand(2);
 
+			local Rotator StartingRot;
+			StartingRot = Rotation;
+
 			// If 0 then we'll turn left, otherwise turn right
 			if ( rnd == 0 )
 			{
+				StartingRot.Yaw = RightRot;
 				TargetRot = LeftRot;
 			}
 			else
 			{
+				StartingRot.Yaw = LeftRot;
 				TargetRot = RightRot;
 			}
 		}
@@ -113,7 +118,7 @@ function int GetCurrentRotOffset()
 
 defaultproperties
 {
-	MaxRotation=1024
+	MaxRotation=4096
 	PauseTime=2.0
-	RotationSpeed=0.5
+	RotationSpeed=0.25
 }
