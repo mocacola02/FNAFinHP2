@@ -2,6 +2,7 @@ class MOCARandomSoundSource extends Actor;
 
 var() Sound SoundToPlay;
 var() ESoundSlot SlotToPlayOn;
+
 var() int Probability;
 var() int CheckInterval;
 
@@ -25,10 +26,10 @@ function HandlePlaySound()
 
 	if ( Probability > 1 )
 	{
-		local int rand;
-		rand = Rand(Probability);
+		local int rnd;
+		rnd = Rand(Probability);
 
-		if ( rand != 0 )
+		if ( rnd != 0 )
 		{
 			return;
 		}
