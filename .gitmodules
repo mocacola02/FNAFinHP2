@@ -1,0 +1,3 @@
+[submodule "MocaOmniPak"]
+	path = MocaOmniPak
+	url = https://github.com/mocacola02/MocaOmniPak.git
