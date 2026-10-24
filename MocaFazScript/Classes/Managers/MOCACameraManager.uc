@@ -8,6 +8,7 @@ struct CameraEntry
 
 var() int 	PowerUsage;		// Moca: How much power usage using the cameras adds.
 var() float RequiredMinDot;	// Moca: Required dot product for Harry to be considered as looking at cameras.
+var() float ActivationDistance;
 
 var() name CameraSurfaceTag;			// Moca: Surface tag of the camera screen surface.
 var() Array<CameraEntry> Cameras;// Moca: List of cameras to manage.
@@ -15,6 +16,9 @@ var() Texture BlankScreenTexture;		// Moca: Texture to use for the blank (inacti
 var() Texture BlockedScreenTexture;		// Moca: Texture to use for blocked cameras.
 var() float CameraBlockDuration;	// Moca: How long cameras stay blocked.
 var() Array<Sound> CameraBlockSFX;	// Moca: Sounds to play when the cameras get blocked.
+
+var() Sound OpenSFX;
+var() Sound CloseSFX;
 
 var bool bUtilized;
 var bool bBlocked;
@@ -48,6 +52,7 @@ event PostBeginPlay()
 	else
 	{
 		SurfaceModifier.SurfaceTag = CameraSurfaceTag;
+		SurfaceModifier.bChangeMaterial = true;
 		UpdateSurface(true);
 	}
 }
@@ -57,7 +62,7 @@ event Tick(float DeltaTime)
 {
 	super.Tick(DeltaTime);
 
-	if ( IsFacingOther(Level.PlayerHarryActor, Self, RequiredMinDot) )
+	if ( IsFacingOther(Level.PlayerHarryActor, Self, RequiredMinDot) && VSize(Location - PlayerHarry.Location) <= ActivationDistance )
 	{
 		OnCameraUtilized();
 	}
@@ -78,10 +83,16 @@ function OnCameraUtilized()
 	}
 
 	Log("Camera is being utilized");
+	Log("Distance: " $ VSize(PlayerHarry.Location - Location));
 
 	bUtilized = true;
 	PowerManager.CurrentUsage += PowerUsage;
 	UpdateSurface();
+
+	if ( OpenSFX != None )
+	{
+		PlaySound(OpenSFX, SLOT_Foley);
+	}
 }
 
 // Called when the camera is not being utilized
@@ -93,22 +104,27 @@ function OnCameraNotUtilized()
 	}
 
 	Log("Camera is not being utilized");
+	Log("Distance: " $ VSize(PlayerHarry.Location - Location));
 
 	bUtilized = false;
 	PowerManager.CurrentUsage -= PowerUsage;
 	UpdateSurface(true);
+
+	if ( CloseSFX != None )
+	{
+		PlaySound(CloseSFX, SLOT_Foley);
+	}
 }
 
 function SetCamera(int CameraIndex)
 {
 	CurrCamera = CameraIndex;
-	OnCameraChanged(CameraIndex);
+	OnCameraChanged();
 }
 
 // Called when the camera is changed to another camera
-function OnCameraChanged(int CameraIdx)
+function OnCameraChanged()
 {
-	CurrCamera = CameraIdx;
 	UpdateSurface();
 }
 
@@ -199,6 +215,8 @@ function UnblockCams()
 // Updates the camera screen surface to a new camera screen, or blank if bBlank
 function UpdateSurface(optional bool bBlank)
 {
+	Log("Updating camera surface");
+
 	if ( bBlank )
 	{
 		SurfaceModifier.NewMaterial = BlankScreenTexture;
@@ -212,7 +230,8 @@ function UpdateSurface(optional bool bBlank)
 		SurfaceModifier.NewMaterial = GetCameraTexture(CurrCamera);
 	}
 	
-	SurfaceModifier.Activate(self, None);
+	Log("Changing to material " $ SurfaceModifier.NewMaterial $ " ...");
+	SurfaceModifier.ModifyLevelSurfaces();
 }
 
 
@@ -221,6 +240,7 @@ defaultproperties
 {
 	PowerUsage=1
 	RequiredMinDot=0.25
+	ActivationDistance=192.0
 
 	CameraSurfaceTag="CameraScreen"
 	

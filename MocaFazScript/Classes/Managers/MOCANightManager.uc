@@ -5,6 +5,8 @@ const NUM_OF_HOURS = 6;
 var() int NightLength;	// Moca: Night length in seconds.
 var() float NightDesaturation;	// Moca: How much desaturation to apply to the screen during the night.
 var() float FirstPersonHeight;	// Moca: How high up the first person camera should be.
+var() name TimeSurfaceTag;
+var() Array<Texture> HourTextures;
 
 var bool bActive;
 
@@ -12,6 +14,38 @@ var int CurrNight;
 var int CurrTime;
 var int CurrHour;
 
+var SurfaceModifyTrigger SurfaceModifier;
+
+
+event PostBeginPlay()
+{
+	super.PostBeginPlay();
+
+	SurfaceModifier = Spawn(Class'SurfaceModifyTrigger');
+	
+	if ( SurfaceModifier == None )
+	{
+		Log("ERROR: Failed to spawn SurfaceModifier!!!");
+	}
+	else
+	{
+		SurfaceModifier.SurfaceTag = TimeSurfaceTag;
+		SurfaceModifier.bChangeMaterial = true;
+		UpdateSurface(0);
+	}
+}
+
+// Updates the camera screen surface to a new camera screen, or blank if bBlank
+function UpdateSurface(int Hour)
+{
+	if ( Hour > HourTextures.Length || HourTextures[Hour] == None )
+	{
+		return;
+	}
+
+	SurfaceModifier.NewMaterial = HourTextures[Hour];
+	SurfaceModifier.ModifyLevelSurfaces();
+}
 
 function SetNight(int NewNight)
 {
@@ -33,11 +67,7 @@ function StartNight()
 	HPConsole(PlayerHarry.Player.Console).FPSMode();
 	PlayerHarry.Cam.SetZOffset(FirstPersonHeight);
 
-	if ( PlayerHarry.Weapon.IsA('MOCAWandless') )
-	{
-		MOCAWandless(PlayerHarry.Weapon).TraceLength = 64.0;
-		MOCAWandless(PlayerHarry.Weapon).bDebugLogging = true;
-	}
+	StartNightTimer();
 }
 
 function StartNightTimer()
@@ -68,6 +98,8 @@ function IncrementTime()
 			CurrHour = HourCheck;
 
 			Log("Hour is now " $ CurrHour);
+
+			UpdateSurface(CurrHour);
 
 			foreach AllActors(class'MOCAAnimatronic', A)
 			{
@@ -124,12 +156,6 @@ function int GetCurrentHour()
 function bool CutCommand(string command, optional string cue, optional bool bFastFlag)
 {
 	local string sActualCommand;
-	local string targetName;
-	local actor tempActor;
-	local sound tempSound;
-	local bool bTemp;
-	local string tempStr;
-
 
 	sActualCommand = ParseDelimitedString( command, " ", 1, false );
 	

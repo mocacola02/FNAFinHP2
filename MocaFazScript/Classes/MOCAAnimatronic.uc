@@ -141,6 +141,18 @@ function StopMovementTimer()
 	SetTimer(0.0, false, 'HandleMovementOpportunity');
 }
 
+function Sound GetFootstepSound()
+{
+	if ( FootstepSFX.Length <= 0 )
+	{
+		return None;
+	}
+
+	local int rnd;
+	rnd = Rand(FootstepSFX.Length);
+	return FootstepSFX[rnd];
+}
+
 function HandleMovementOpportunity()
 {
 	if ( ShouldMove() )
@@ -163,6 +175,15 @@ function HandleMovementOpportunity()
 		SetLocation(NewDP.Location);
 		SetRotation(NewDP.Rotation);
 		PlayAnim(CurrDP.AnimToPlay);
+
+		local Sound FootstepSound;
+		FootstepSound = GetFootstepSound();
+		Log("Playing footstep sound " $ FootstepSound);
+
+		if ( FootstepSound != None )
+		{
+			PlaySound(FootstepSound, SLOT_Foley);
+		}
 	}
 }
 
@@ -199,13 +220,6 @@ function StopAllSounds()
 function bool CutCommand(string command, optional string cue, optional bool bFastFlag)
 {
 	local string sActualCommand;
-	local string targetName;
-	local actor tempActor;
-	local sound tempSound;
-	local bool bTemp;
-	local string tempStr;
-
-
 	sActualCommand = ParseDelimitedString( command, " ", 1, false );
 	
 	if( sActualCommand ~= "SetAI" )

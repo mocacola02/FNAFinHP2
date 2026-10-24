@@ -1,6 +1,7 @@
 class MOCACameraButton extends MOCAInteractiveProp;
 
 var() int CameraIndex;
+var() Sound ClickSound;
 
 var MOCACameraManager CameraManager;
 
@@ -23,10 +24,15 @@ function ProcessInteract()
 {
 	Log("Setting camera to index " $ CameraIndex);
 	CameraManager.SetCamera(CameraIndex);
+
+	if ( ClickSound != None )
+	{
+		PlaySound(ClickSound, SLOT_Foley);
+	}
 }
 
 defaultproperties
 {
-	Lives=1
-	CooldownDuration=1.0
+	Lives=99999999
+	CooldownDuration=0.1
 }
