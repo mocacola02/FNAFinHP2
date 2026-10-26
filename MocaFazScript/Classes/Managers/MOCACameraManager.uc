@@ -119,6 +119,9 @@ function OnCameraNotUtilized()
 function SetCamera(int CameraIndex)
 {
 	CurrCamera = CameraIndex;
+
+	Log("Our camera is now index " $ CameraIndex $ " which is the actor " $ GetCurrentCamera());
+
 	OnCameraChanged();
 }
 
@@ -192,6 +195,8 @@ function BlockCams()
 	{
 		PlaySound(BlockedSFX, SLOT_Foley);
 	}
+
+	UpdateSurface();
 }
 
 function Sound GetBlockedSFX()
@@ -210,6 +215,7 @@ function Sound GetBlockedSFX()
 function UnblockCams()
 {
 	bBlocked = false;
+	UpdateSurface();
 }
 
 // Updates the camera screen surface to a new camera screen, or blank if bBlank
@@ -223,6 +229,7 @@ function UpdateSurface(optional bool bBlank)
 	}
 	else if ( bBlocked )
 	{
+		Log("CameraManager: Setting camera material to blocked texture");
 		SurfaceModifier.NewMaterial = BlockedScreenTexture;
 	}
 	else

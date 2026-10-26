@@ -1,5 +1,11 @@
 class MOCAAnimatronic extends MOCAPawn;
 
+enum Doors
+{
+	DTA_Left,
+	DTA_Right
+};
+
 // AI modifier, modifies AILevel by a given amount at a given hour
 struct AIModifier
 {
@@ -8,7 +14,12 @@ struct AIModifier
 };
 
 var() name EventOnKill;	// Moca: What event to emit when killing the player
+var() name KillSpotTag;	// Moca: Tag of the CutMark to place us at during kill animation
+var() name JumpscareAnim;
+var() Doors DoorToAttack;
 
+var(MOCAAnimatronicAI) bool bCanBeCamStalled;	// Moca: Can this animatronic be blocked from moving if being watched on cams?
+var(MOCAAnimatronicAI) bool bMustWatchCamsToEnter;	// Moca: Does the player have to be watching the cameras to be able to enter the office?
 var(MOCAAnimatronicAI) int AILevel;	// Moca: Current AI level
 var(MOCAAnimatronicAI) int MaxAI;	// Moca: Maximum allowed AI level
 var(MOCAAnimatronicAI) Array<AIModifier> AIModifiers; // Moca: AI modifiers to activate at a given hour(s).
@@ -18,8 +29,10 @@ var(MOCAAnimatronicSFX) Sound WarbledVoiceSFX;		// Moca: Warbled voice sound eff
 var(MOCAAnimatronicSFX) Array<Sound> FootstepSFX;	// Moca: Array of footstep sounds to play on movement
 var(MOCAAnimatronicSFX) Array<Sound> GotInSFX;		// Moca: Array of sounds to play when entering the office, before killing the player
 
+var bool bKillingPlayer;
 var MOCADestinationPoint CurrDP;
 var MOCACameraManager CameraManager;
+var MOCAPowerManager PowerManager;
 
 
 //================
@@ -42,7 +55,17 @@ event PostBeginPlay()
 
 	if ( CameraManager == None )
 	{
-		Log("ERROR: Could not find CameraManager!!!");
+		Log(CutName $ ": ERROR: Could not find CameraManager!!!");
+	}
+
+	foreach AllActors(class'MOCAPowerManager', PowerManager)
+	{
+		break;
+	}
+
+	if ( PowerManager == None )
+	{
+		Log(Cutname $ ": ERROR: Could not find power manager!");
 	}
 }
 
@@ -95,6 +118,7 @@ function OnNewHour(int Hour)
 function OnStartNight()
 {
 	StartMovementTimer();
+	Log(CutName $ ": Starting night, and my starting destination is " $ CurrDP);
 }
 
 function OnNightEnd()
@@ -113,19 +137,35 @@ function OnNightEnd()
 function SetAILevel(int NewLevel)
 {
 	NewLevel = Clamp(NewLevel, 0, MaxAI);
-	Log("Setting AI to " $ NewLevel);
+	Log(CutName $ ": Setting AI to " $ NewLevel);
 	AILevel = NewLevel;
 }
 
 // Rolls a movement opportunity and returns whether or not it was successful
 function bool ShouldMove()
 {
+	Log(CutName $ ": Do we need cams to enter office? " $ bMustWatchCamsToEnter $ " | Is camera being used? " $ CameraManager.bUtilized);
+
+	if ( bMustWatchCamsToEnter && !CameraManager.bUtilized )
+	{
+		Log(CutName $ ": Darnit player isn't looking at cams! i can't enter!!");
+		return false;
+	}
+
+	Log(CutName $ ": Can we be cam stalled? " $ bCanBeCamStalled $ " | Is our camera being watched? " $ CurrDP.RelevantCamera == CameraManager.GetCurrentCamera());
+
+	if ( bCanBeCamStalled && CurrDP.RelevantCamera == CameraManager.GetCurrentCamera() )
+	{
+		Log(CutName $ ": blast it, player is CAM STALLING ME!!");
+		return false;
+	}
+
 	// Get a random number between 1 and MaxAI
 	local int rnd;
 	rnd = Rand(MaxAI + 1);
 	rnd = Clamp(rnd, 1, MaxAI);
 
-	Log("Trying to move with result " $ AILevel $ " - " $ rnd);
+	Log(CutName $ ": Trying to move with result " $ AILevel $ " - " $ rnd);
 
 	// Return whether or not our AILevel is greater than the random number
 	return AILevel >= rnd;
@@ -157,17 +197,44 @@ function HandleMovementOpportunity()
 {
 	if ( ShouldMove() )
 	{
+		if ( CurrDP.bIsKillPoint )
+		{
+			if ( DoorToAttack == DTA_Left && !PowerManager.bLeftDoorClosed && CanKill() )
+			{
+				Jumpscare();
+				return;
+			}
+			else if ( DoorToAttack == DTA_Right && !PowerManager.bRightDoorClosed && CanKill() )
+			{
+				Jumpscare();
+				return;
+			}
+		}
+
 		local MOCADestinationPoint NewDP;
 		NewDP = GetNewDestination();
 
 		if ( NewDP == None )
 		{
-			Log("Could not find a new destination!!!");
+			Log(CutName $ ": Could not find a new destination!!!");
 			return;
 		}
 
+		Log(CutName $ ": Our CurrDP is " $ CurrDP $ " with the camera " $ CurrDP.RelevantCamera $ " and the current camera is " $ CameraManager.GetCurrentCamera());
+
+		// If we're looking at the pre-movement position, block cams
 		if ( CurrDP != None && CameraManager.GetCurrentCamera() == CurrDP.RelevantCamera )
 		{
+			Log(CutName $ ": screw you and your cameras, BLOCKED");
+			CameraManager.BlockCams();
+		}
+
+		Log(CutName $ ": Our NewDP is " $ NewDP $ " with the camera " $ NewDP.RelevantCamera $ " and the current camera is " $ CameraManager.GetCurrentCamera());
+
+		// If we're looking at the destination position, block cams
+		if ( CameraManager.GetCurrentCamera() == NewDP.RelevantCamera )
+		{
+			Log(CutName $ ": screw you and your cameras, BLOCKED");
 			CameraManager.BlockCams();
 		}
 
@@ -178,7 +245,6 @@ function HandleMovementOpportunity()
 
 		local Sound FootstepSound;
 		FootstepSound = GetFootstepSound();
-		Log("Playing footstep sound " $ FootstepSound);
 
 		if ( FootstepSound != None )
 		{
@@ -197,6 +263,31 @@ function MOCADestinationPoint GetNewDestination()
 	return CurrDP.GetValidDestination();
 }
 
+function bool CanKill()
+{
+	local MOCAAnimatronic A;
+
+	foreach AllActors(class'MOCAAnimatronic', A)
+	{
+		if ( A.bKillingPlayer )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function Jumpscare()
+{
+	PlayerHarry.bStationary = true;
+	EmitKillEvent();
+}
+
+function EmitKillEvent()
+{
+	TriggerEvent(EventOnKill, Self, Self);
+}
 
 //=================
 // Sound Handling

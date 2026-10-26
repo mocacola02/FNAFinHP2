@@ -40,7 +40,6 @@ function HandlePlaySound()
 {
 	if ( SoundToPlay == None || IsPlayingSound() )
 	{
-		Log("Invalid sound or we're already playing sound");
 		return;
 	}
 
@@ -49,15 +48,13 @@ function HandlePlaySound()
 		local int rnd;
 		rnd = Rand(Probability);
 
-		Log("Rolled a " $ rnd $ " to play sound");
-
 		if ( rnd != 0 )
 		{
 			return;
 		}
 	}
 
-	Log("Playing sound " $ SoundToPlay $ " on slot " $ SlotToPlayOn);
+	Log("Playing random sound " $ SoundToPlay $ " on slot " $ SlotToPlayOn);
 	PlaySound(SoundToPlay, SlotToPlayOn);
 }
 

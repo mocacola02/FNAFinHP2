@@ -10,6 +10,9 @@ var(MOCAFoxy) int BaseFoxyDrain;		// Moca: Base amount of power Foxy should drai
 var(MOCAFoxy) int FoxyDrainIncrement;	// Moca: How much power to add onto the base drain, increasing with the number of times Foxy has hit.
 var(MOCAFoxy) int MaxFoxyDrain;			// Moca: Maximum amount of power Foxy is allowed to drain. < 0 means no limit.
 
+var bool bLeftDoorClosed;
+var bool bRightDoorClosed;
+
 var int FoxyHits;
 
 var int CurrentPower;
