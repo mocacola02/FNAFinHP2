@@ -16,6 +16,7 @@ struct AIModifier
 var() name EventOnKill;	// Moca: What event to emit when killing the player
 var() name KillSpotTag;	// Moca: Tag of the CutMark to place us at during kill animation
 var() name JumpscareAnim;
+var() float JumpscareAnimRate;
 var() Doors DoorToAttack;
 
 var(MOCAAnimatronicAI) bool bCanBeCamStalled;	// Moca: Can this animatronic be blocked from moving if being watched on cams?
@@ -280,6 +281,14 @@ function bool CanKill()
 
 function Jumpscare()
 {
+	local MOCACrosshair A;
+	foreach AllActors(class'MOCACrosshair', A)
+	{
+		A.Destroy();
+	}
+
+	ConsoleCommand("hidehud");
+
 	PlayerHarry.bStationary = true;
 	EmitKillEvent();
 }
@@ -338,6 +347,7 @@ function bool CutCommand_SetAI(string command, optional string cue, optional boo
 defaultproperties
 {
 	EventOnKill="BonnieKill"
+	JumpscareAnimRate=2.0
 
 	MaxAI=20
 	MoveInterval=5.0

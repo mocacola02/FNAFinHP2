@@ -270,6 +270,7 @@ state stateAttack
 			PlayAnim(CurrDP.AnimToPlay);
 
 			CurrPhase = 0;
+			Curtain.Mesh = CurtainMeshes[0];
 			GotoState('stateAtCove');
 		}
 		else if ( !PowerManager.bLeftDoorClosed )
