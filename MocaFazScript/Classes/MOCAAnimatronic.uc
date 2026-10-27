@@ -70,6 +70,14 @@ event PostBeginPlay()
 	}
 }
 
+event Bump(Actor Other)
+{
+	if ( Other == PlayerHarry )
+	{
+		Jumpscare();
+	}
+}
+
 function MOCADestinationPoint GetNearestDP()
 {
 	local MOCADestinationPoint TestDP;

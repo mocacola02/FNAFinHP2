@@ -172,8 +172,6 @@ state stateAwaitingRun
 	{
 		WaitTime -= DeltaTime;
 
-		Log(CutName $ ": Run WaitTime = " $ WaitTime);
-
 		if ( IsSameCameraBeingWatched() )
 		{
 			Log(CutName $ ": We've been seen, BOOK IT!!!!");

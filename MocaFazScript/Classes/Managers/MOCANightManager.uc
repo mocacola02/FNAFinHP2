@@ -67,6 +67,7 @@ function StartNight()
 
 	foreach AllActors(class'MOCAPowerManager', B)
 	{
+		Log("INIT POWER MANAGER!!!!!!!!!!!!!!!");
 		B.StartPowerTimer();
 		B.StartPassiveTimer();
 	}

@@ -1,24 +1,24 @@
 class MOCAPowerManager extends Actor;
 
-var() int InitialPower;			// Moca: How much power to start with each night
+var() float InitialPower;			// Moca: How much power to start with each night
 var() name PowerOutEvent;		// Moca: Event to send when power runs out.
-var() name HundredPlaceTag;
 var() name TenPlaceTag;
 var() name SinglePlaceTag;
 var() Texture TransparentTex;
 var() Array<Texture> NumberTex;
-
-var(MOCAFoxy) int BaseFoxyDrain;		// Moca: Base amount of power Foxy should drain when hitting the door.
-var(MOCAFoxy) int FoxyDrainIncrement;	// Moca: How much power to add onto the base drain, increasing with the number of times Foxy has hit.
-var(MOCAFoxy) int MaxFoxyDrain;			// Moca: Maximum amount of power Foxy is allowed to drain. < 0 means no limit.
+var() Texture GreenBarTex;
+var() Texture YellowBarTex;
+var() Texture RedBarTex;
+var() name UsageBarTags[6];
 
 var bool bLeftDoorClosed;
 var bool bRightDoorClosed;
 var bool bLeftLightOn;
 var bool bRightLightOn;
 
-var int CurrPower;
+var float CurrPower;
 
+var int PowerUsage;
 var int FoxyHits;
 
 var MOCANightManager NightManager;
@@ -29,6 +29,8 @@ var SurfaceModifyTrigger SurfaceModifier;
 event PostBeginPlay()
 {
 	Super.PostBeginPlay();
+
+	CurrPower = InitialPower;
 	
 	foreach AllActors(class'MOCANightManager', NightManager)
 	{
@@ -58,15 +60,15 @@ event PostBeginPlay()
 	}
 	else
 	{
-		SurfaceModifier.SurfaceTag = HundredPlaceTag;
 		SurfaceModifier.bChangeMaterial = true;
-		UpdateSurface();
+		UpdatePercentSurface();
 	}
 }
 
 // Starts the power drain timer
 function StartPowerTimer()
 {
+	CurrPower = InitialPower;
 	SetTimer(1.0, true, 'HandleDrain');
 }
 
@@ -86,12 +88,16 @@ function StartPassiveTimer()
 			return;
 		case 2:
 			TargetTime = 6;
+			break;
 		case 3:
 			TargetTime = 5;
+			break;
 		case 4:
 			TargetTime = 4;
+			break;
 		default:
 			TargetTime = 3;
+			break;
 	}
 
 	SetTimer(TargetTime, true, 'HandlePassiveDrain');
@@ -100,6 +106,13 @@ function StartPassiveTimer()
 function StopPassiveTimer()
 {
 	SetTimer(0.0, false, 'HandlePassiveDrain');
+}
+
+event Tick(float DeltaTime)
+{
+	// i HATE this, this needs a recode in V2
+	PowerUsage = GetPowerUsage();
+	UpdateUsageSurface();
 }
 
 // this is absolute cheeks
@@ -136,22 +149,23 @@ function int GetPowerUsage()
 	return Usage;
 }
 
-function DrainPower(int Amount)
+function DrainPower(float Amount)
 {
 	CurrPower -= Amount;
-	UpdateSurface();
+	Log("Power is now " $ CurrPower $ " | Usage is " $ PowerUsage);
+	UpdatePercentSurface();
 	CheckPower();
 }
 
 // Determines if we should drain power yet
 function HandleDrain()
 {
-	DrainPower(1 * GetPowerUsage());
+	DrainPower(0.1 * PowerUsage);
 }
 
 function HandlePassiveDrain()
 {
-	DrainPower(1);
+	DrainPower(0.1);
 }
 
 // Handles logic for Foxy hitting the door
@@ -160,12 +174,7 @@ function HandleFoxyHit()
 	// Since the first hit should only take 1% power, we'll increment FoxyHits AFTER the hit drain
 	local int DrainAmount;
 	// Calculates the drain amount from our base drain that should be taken each time, plus an increment that is increased for each hit
-	DrainAmount = BaseFoxyDrain + (FoxyDrainIncrement * FoxyHits);
-
-	if ( MaxFoxyDrain >= 0 )
-	{
-		DrainAmount = Clamp(DrainAmount, 0, MaxFoxyDrain);
-	}
+	DrainAmount = 5.0 * FoxyHits + 1.0;
 
 	// Drain the calculated amount
 	DrainPower(DrainAmount);
@@ -191,42 +200,67 @@ function CheckPower()
 	}
 }
 
-function UpdateSurface()
+function UpdatePercentSurface()
 {
-	local int Offset;
 	local string PowerPercent;
-	PowerPercent = ItoA(Round((CurrPower / InitialPower) * 100));
+	PowerPercent = ItoA(Clamp(Round((CurrPower / InitialPower) * 100), 0, 99));
 
-	SurfaceModifier.SurfaceTag = HundredPlaceTag;
+	SurfaceModifier.SurfaceTag = TenPlaceTag;
 
-	if ( AtoI(PowerPercent) >= 100 )
+	if ( AtoI(PowerPercent) >= 10 )
 	{
-		Offset = 1;
-		SurfaceModifier.NewMaterial = NumberTex[AtoI(Left(PowerPercent, 0))];
-		SurfaceModifier.ModifyLevelSurfaces();
+		SurfaceModifier.NewMaterial = NumberTex[AtoI(CharAt(PowerPercent, 0))];
 	}
 	else
 	{
 		SurfaceModifier.NewMaterial = TransparentTex;
-		SurfaceModifier.ModifyLevelSurfaces();
 	}
 
-	SurfaceModifier.SurfaceTag = TenPlaceTag;
-	SurfaceModifier.NewMaterial = NumberTex[AtoI(Left(PowerPercent, 0 + Offset))];
 	SurfaceModifier.ModifyLevelSurfaces();
-
+	
 	SurfaceModifier.SurfaceTag = SinglePlaceTag;
-	SurfaceModifier.NewMaterial = NumberTex[AtoI(Left(PowerPercent, 1 + Offset))];
+	SurfaceModifier.NewMaterial = NumberTex[AtoI(CharAt(PowerPercent, 1))];
 	SurfaceModifier.ModifyLevelSurfaces();
+}
+
+function UpdateUsageSurface()
+{
+	local int i;
+
+	for ( i = 0; i < 6; i++ )
+	{
+		SurfaceModifier.SurfaceTag = UsageBarTags[i];
+
+		if ( PowerUsage >= i + 1 )
+		{
+			// more ass manuevers
+			switch(i)
+			{
+				case 0:
+				case 1:
+					SurfaceModifier.NewMaterial = GreenBarTex;
+					break;
+				case 2:
+				case 3:
+					SurfaceModifier.NewMaterial = YellowBarTex;
+					break;
+				default:
+					SurfaceModifier.NewMaterial = RedBarTex;
+					break;
+			}
+		}
+		else
+		{
+			SurfaceModifier.NewMaterial = TransparentTex;
+		}
+
+		SurfaceModifier.ModifyLevelSurfaces();
+	}
 }
 
 
 defaultproperties
 {
-	InitialPower=999
+	InitialPower=99.9
 	PowerOutEvent="PowerOut"
-
-	BaseFoxyDrain=1
-	FoxyDrainIncrement=5
-	MaxFoxyDrain=-1
 }
