@@ -185,18 +185,24 @@ function HandleFoxyHit()
 
 function CheckPower()
 {
-	if ( CurrPower <= 0 )
+	if ( CurrPower <= 0.0 )
 	{
 		local MOCAAnimatronic A;
 		foreach AllActors(class'MOCAAnimatronic', A)
 		{
-			A.SetAILevel(0);
+			A.OnNightEnd();
 		}
 
 		StopPowerTimer();
 		StopPassiveTimer();
 
-		TriggerEvent(PowerOutEvent, Self, None);
+		local MOCAPowerOutManager POM;
+		foreach AllActors(class'MOCAPowerOutManager', POM)
+		{
+			Log("!!!!!!!!!!!!!!!!!!!!!! STARTING POWER OUT !!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+			POM.Start();
+			break;
+		}
 	}
 }
 
