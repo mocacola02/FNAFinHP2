@@ -86,7 +86,6 @@ function OnCameraUtilized()
 	Log("Distance: " $ VSize(PlayerHarry.Location - Location));
 
 	bUtilized = true;
-	PowerManager.CurrentUsage += PowerUsage;
 	UpdateSurface();
 
 	if ( OpenSFX != None )
@@ -107,7 +106,6 @@ function OnCameraNotUtilized()
 	Log("Distance: " $ VSize(PlayerHarry.Location - Location));
 
 	bUtilized = false;
-	PowerManager.CurrentUsage -= PowerUsage;
 	UpdateSurface(true);
 
 	if ( CloseSFX != None )

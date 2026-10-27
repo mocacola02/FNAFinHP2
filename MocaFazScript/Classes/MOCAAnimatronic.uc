@@ -230,6 +230,9 @@ function HandleMovementOpportunity()
 			CameraManager.BlockCams();
 		}
 
+		CurrDP.StopOccupiedSound();
+		NewDP.PlayOccupiedSound();
+
 		Log(CutName $ ": Our NewDP is " $ NewDP $ " with the camera " $ NewDP.RelevantCamera $ " and the current camera is " $ CameraManager.GetCurrentCamera());
 
 		// If we're looking at the destination position, block cams

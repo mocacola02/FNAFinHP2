@@ -1,10 +1,12 @@
 class MOCAPowerManager extends Actor;
 
 var() int InitialPower;			// Moca: How much power to start with each night
-var() int DeincrementValue;		// Moca: How much power to drain each time we lose power (excluding Foxy drainage)
-var() int DeincrementInterval;	// Moca: How many seconds between power drains. Gets shortened based on power usage.
 var() name PowerOutEvent;		// Moca: Event to send when power runs out.
-var() Mover PowerBarMover;		// Moca: Reference to the power bar mover.
+var() name HundredPlaceTag;
+var() name TenPlaceTag;
+var() name SinglePlaceTag;
+var() Texture TransparentTex;
+var() Array<Texture> NumberTex;
 
 var(MOCAFoxy) int BaseFoxyDrain;		// Moca: Base amount of power Foxy should drain when hitting the door.
 var(MOCAFoxy) int FoxyDrainIncrement;	// Moca: How much power to add onto the base drain, increasing with the number of times Foxy has hit.
@@ -12,51 +14,144 @@ var(MOCAFoxy) int MaxFoxyDrain;			// Moca: Maximum amount of power Foxy is allow
 
 var bool bLeftDoorClosed;
 var bool bRightDoorClosed;
+var bool bLeftLightOn;
+var bool bRightLightOn;
+
+var int CurrPower;
 
 var int FoxyHits;
 
-var int CurrentPower;
-var int CurrentUsage;
+var MOCANightManager NightManager;
+var MOCACameraManager CameraManager;
+var SurfaceModifyTrigger SurfaceModifier;
 
-var int CurrentIntervalTime;
 
-
-// Resets key values to their intended default
-function Reset()
+event PostBeginPlay()
 {
-	CurrentPower = InitialPower;
-	CurrentUsage = 0;
-	CurrentIntervalTime = 0;
-	FoxyHits = 0;
-}
-
-// Returns whether or not we're out of power
-function bool IsOutOfPower()
-{
-	return CurrentPower < 0;
-}
-
-// Checks if we're out of power, emits an event if so and stops the drain timer
-function CheckPowerLevel()
-{
-	if ( IsOutOfPower() )
+	Super.PostBeginPlay();
+	
+	foreach AllActors(class'MOCANightManager', NightManager)
 	{
-		TriggerEvent(PowerOutEvent, Self, None);
-		StopPowerTimer();
+		break;
+	}
+
+	if ( NightManager == None )
+	{
+		Log("ERROR: Could not find night manager!!");
+	}
+
+	foreach AllActors(class'MOCACameraManager', CameraManager)
+	{
+		break;
+	}
+
+	if ( CameraManager == None )
+	{
+		Log("ERROR: Could not find camera manager!!");
+	}
+
+	SurfaceModifier = Spawn(Class'SurfaceModifyTrigger');
+	
+	if ( SurfaceModifier == None )
+	{
+		Log("ERROR: Failed to spawn SurfaceModifier!!!");
+	}
+	else
+	{
+		SurfaceModifier.SurfaceTag = HundredPlaceTag;
+		SurfaceModifier.bChangeMaterial = true;
+		UpdateSurface();
 	}
 }
 
-// Removes a given amount of power, moves the power bar mover, and checks if we are out of power
+// Starts the power drain timer
+function StartPowerTimer()
+{
+	SetTimer(1.0, true, 'HandleDrain');
+}
+
+// Stops the power drain timer
+function StopPowerTimer()
+{
+	SetTimer(0.0, false, 'HandleDrain');
+}
+
+function StartPassiveTimer()
+{
+	local int TargetTime;
+
+	switch(NightManager.CurrNight)
+	{
+		case 1:
+			return;
+		case 2:
+			TargetTime = 6;
+		case 3:
+			TargetTime = 5;
+		case 4:
+			TargetTime = 4;
+		default:
+			TargetTime = 3;
+	}
+
+	SetTimer(TargetTime, true, 'HandlePassiveDrain');
+}
+
+function StopPassiveTimer()
+{
+	SetTimer(0.0, false, 'HandlePassiveDrain');
+}
+
+// this is absolute cheeks
+function int GetPowerUsage()
+{
+	local int Usage;
+	Usage = 1;
+
+	if ( bLeftDoorClosed )
+	{
+		Usage++;
+	}
+
+	if ( bRightDoorClosed )
+	{
+		Usage++;
+	}
+
+	if ( bLeftLightOn )
+	{
+		Usage++;
+	}
+
+	if ( bRightLightOn )
+	{
+		Usage++;
+	}
+
+	if ( CameraManager.bUtilized )
+	{
+		Usage++;
+	}
+
+	return Usage;
+}
+
 function DrainPower(int Amount)
 {
-	CurrentPower -= Amount;
+	CurrPower -= Amount;
+	UpdateSurface();
+	CheckPower();
+}
 
-	if ( PowerBarMover != None )
-	{
-		PowerBarMover.SetLocation(PowerBarMover.Location - vec(0.0, 0.0, -Amount));
-	}
+// Determines if we should drain power yet
+function HandleDrain()
+{
+	DrainPower(1 * GetPowerUsage());
+}
 
-	CheckPowerLevel();
+function HandlePassiveDrain()
+{
+	DrainPower(1);
 }
 
 // Handles logic for Foxy hitting the door
@@ -79,42 +174,56 @@ function HandleFoxyHit()
 	FoxyHits++;
 }
 
-// Starts the power drain timer
-function StartPowerTimer()
+function CheckPower()
 {
-	SetTimer(1.0, true, 'HandleDrain');
-}
-
-// Stops the power drain timer
-function StopPowerTimer()
-{
-	SetTimer(0.0, false, 'HandleDrain');
-}
-
-// Determines if we should drain power yet
-function HandleDrain()
-{
-	// If we have power
-	if ( CurrentPower >= 0 )
+	if ( CurrPower <= 0 )
 	{
-		// Increment time interval
-		CurrentIntervalTime++;
-
-		// If current time is greater than or equal to our set interval minus the current usage (aka drain power faster when usage is higher), drain power
-		if ( CurrentIntervalTime >= DeincrementInterval - CurrentUsage )
+		local MOCAAnimatronic A;
+		foreach AllActors(class'MOCAAnimatronic', A)
 		{
-			DrainPower(DeincrementValue);
+			A.SetAILevel(0);
 		}
+
+		StopPowerTimer();
+		StopPassiveTimer();
+
+		TriggerEvent(PowerOutEvent, Self, None);
 	}
 }
 
+function UpdateSurface()
+{
+	local int Offset;
+	local string PowerPercent;
+	PowerPercent = ItoA(Round((CurrPower / InitialPower) * 100));
+
+	SurfaceModifier.SurfaceTag = HundredPlaceTag;
+
+	if ( AtoI(PowerPercent) >= 100 )
+	{
+		Offset = 1;
+		SurfaceModifier.NewMaterial = NumberTex[AtoI(Left(PowerPercent, 0))];
+		SurfaceModifier.ModifyLevelSurfaces();
+	}
+	else
+	{
+		SurfaceModifier.NewMaterial = TransparentTex;
+		SurfaceModifier.ModifyLevelSurfaces();
+	}
+
+	SurfaceModifier.SurfaceTag = TenPlaceTag;
+	SurfaceModifier.NewMaterial = NumberTex[AtoI(Left(PowerPercent, 0 + Offset))];
+	SurfaceModifier.ModifyLevelSurfaces();
+
+	SurfaceModifier.SurfaceTag = SinglePlaceTag;
+	SurfaceModifier.NewMaterial = NumberTex[AtoI(Left(PowerPercent, 1 + Offset))];
+	SurfaceModifier.ModifyLevelSurfaces();
+}
 
 
 defaultproperties
 {
-	InitialPower=100
-	DeincrementValue=1
-	DeincrementInterval=5
+	InitialPower=999
 	PowerOutEvent="PowerOut"
 
 	BaseFoxyDrain=1

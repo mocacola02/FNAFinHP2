@@ -6,6 +6,7 @@ var() int NightLength;	// Moca: Night length in seconds.
 var() float NightDesaturation;	// Moca: How much desaturation to apply to the screen during the night.
 var() float FirstPersonHeight;	// Moca: How high up the first person camera should be.
 var() name TimeSurfaceTag;
+var() name NightEndEvent;
 var() Array<Texture> HourTextures;
 
 var bool bActive;
@@ -57,10 +58,17 @@ function StartNight()
 	bActive = true;
 
 	local MOCAAnimatronic A;
+	local MOCAPowerManager B;
 	
 	foreach AllActors(class'MOCAAnimatronic', A)
 	{
 		A.OnStartNight();
+	}
+
+	foreach AllActors(class'MOCAPowerManager', B)
+	{
+		B.StartPowerTimer();
+		B.StartPassiveTimer();
 	}
 
 	PlayerHarry.SetBWPercent(NightDesaturation);
@@ -109,16 +117,37 @@ function IncrementTime()
 
 		if ( CurrTime >= NightLength )
 		{
-			bActive = false;
-			StopNightTimer();
-			
-			foreach AllActors(class'MOCAAnimatronic', A)
-			{
-				A.OnNightEnd();
-			}
+			OnNightEnd();
 		}
 	}
 	
+}
+
+function OnNightEnd()
+{
+	bActive = false;
+	StopNightTimer();
+
+	local MOCAAnimatronic A;
+	foreach AllActors(class'MOCAAnimatronic', A)
+	{
+		A.OnNightEnd();
+	}
+
+	local MOCAPowerManager B;
+	foreach AllActors(class'MOCAPowerManager', B)
+	{
+		B.StopPowerTimer();
+		B.StopPassiveTimer();
+	}
+
+	local MOCAPowerOutManager C;
+	foreach AllActors(class'MOCAPowerOutManager', C)
+	{
+		C.Cancel();
+	}
+
+	TriggerEvent(NightEndEvent, Self, None);
 }
 
 function int GetHourInSeconds(int Hour)

@@ -5,6 +5,7 @@ var() Array<MOCADestinationPoint> Destinations;	// Moca: What destinations are a
 var() bool bBlockedByCamera;	// Moca: Can this destination point be blocked if it is being watched?
 var() MOCASecurityCamera RelevantCamera; // Moca: What camera, if any, is watching this point?
 var() bool bIsKillPoint;
+var() Sound SoundToPlay;
 
 function MOCADestinationPoint GetValidDestination()
 {
@@ -30,6 +31,16 @@ function MOCADestinationPoint GetValidDestination()
 	rnd = Rand(ValidDPs.Length);
 
 	return ValidDPs[rnd];
+}
+
+function PlayOccupiedSound()
+{
+	PlaySound(SoundToPlay, SLOT_Ambient,,,,,, true);
+}
+
+function StopOccupiedSound()
+{
+	StopSound(SoundToPlay, SLOT_Ambient);
 }
 
 defaultproperties
