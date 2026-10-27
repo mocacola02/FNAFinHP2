@@ -11,6 +11,7 @@ var() Sound BangSound;
 var() MOCADestinationPoint RunStartDP;
 var() Array<SkeletalMesh> CurtainMeshes;
 
+var bool bPendingKill;
 var bool bCanDoOpportunity;
 var int CurrPhase;
 var float StunTimer;
@@ -273,9 +274,10 @@ state stateAttack
 		}
 		else if ( !PowerManager.bLeftDoorClosed )
 		{
-			if ( CanKill() )
+			if ( CanKill() && !bPendingKill )
 			{
-				Jumpscare();
+				bPendingKill = true;
+				SetTimer(0.2, false, 'Jumpscare');
 			}
 		}
 	}

@@ -241,6 +241,22 @@ function HandleMovementOpportunity()
 		CurrDP.StopOccupiedSound();
 		NewDP.PlayOccupiedSound();
 
+		TriggerEvent(CurrDP.EventOnMove, Self, Self);
+		TriggerEvent(NewDP.EventOnMove, Self, Self);
+
+		if ( NewDP.bIsKillPoint || CurrDP.bIsKillPoint )
+		{
+			local MOCAOfficeButton Button;
+			foreach AllActors(class'MOCAOfficeButton', Button)
+			{
+				if ( ( Button.ButtonTarget == BP_LeftLight && PowerManager.bLeftLightOn ) || ( Button.ButtonTarget == BP_RightLight && PowerManager.bRightLightOn ) )
+				{
+					Log(CutName $ ": Disabling light");
+					Button.ProcessInteract();
+				}
+			}
+		}
+
 		Log(CutName $ ": Our NewDP is " $ NewDP $ " with the camera " $ NewDP.RelevantCamera $ " and the current camera is " $ CameraManager.GetCurrentCamera());
 
 		// If we're looking at the destination position, block cams

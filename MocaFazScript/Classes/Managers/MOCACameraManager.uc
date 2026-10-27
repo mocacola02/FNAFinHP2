@@ -183,18 +183,21 @@ function MOCASecurityCamera GetCurrentCamera()
 
 function BlockCams()
 {
-	bBlocked = true;
-	SetTimer(CameraBlockDuration, false, 'UnblockCams');
-	
-	local Sound BlockedSFX;
-	BlockedSFX = GetBlockedSFX();
-
-	if ( BlockedSFX != None )
+	if ( bUtilized )
 	{
-		PlaySound(BlockedSFX, SLOT_Foley);
-	}
+		bBlocked = true;
+		SetTimer(CameraBlockDuration, false, 'UnblockCams');
+		
+		local Sound BlockedSFX;
+		BlockedSFX = GetBlockedSFX();
 
-	UpdateSurface();
+		if ( BlockedSFX != None )
+		{
+			PlaySound(BlockedSFX, SLOT_Foley);
+		}
+
+		UpdateSurface();
+	}
 }
 
 function Sound GetBlockedSFX()
