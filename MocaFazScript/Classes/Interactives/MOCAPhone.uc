@@ -12,5 +12,10 @@ function StopAllSounds()
 
 function ProcessInteract()
 {
-    StopAllSounds();
+	if ( CutNotifyActor.IsA('CutScript') )
+	{
+		CutScript(CutNotifyActor).parentCutscene.ForceFinish();
+		StopAllSounds();
+		HPHud(PlayerHarry.myHUD).ClearSubtitleText();
+	}
 }

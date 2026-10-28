@@ -41,6 +41,8 @@ event PostBeginPlay()
 	}
 	else
 	{
+		SurfaceModifier.TriggerType = TT_EventOnly;
+		SurfaceModifier.bDoActionWhenTriggered = true;
 		SurfaceModifier.SurfaceTag = SurfaceTag;
 		SurfaceModifier.bChangeMaterial = true;
 	}
