@@ -19,8 +19,6 @@ var() name JumpscareAnim;
 var() float JumpscareAnimRate;
 var() Doors DoorToAttack;
 
-var(MOCAAnimatronicAI) bool bCanBeCamStalled;	// Moca: Can this animatronic be blocked from moving if being watched on cams?
-var(MOCAAnimatronicAI) bool bMustWatchCamsToEnter;	// Moca: Does the player have to be watching the cameras to be able to enter the office?
 var(MOCAAnimatronicAI) int AILevel;	// Moca: Current AI level
 var(MOCAAnimatronicAI) int MaxAI;	// Moca: Maximum allowed AI level
 var(MOCAAnimatronicAI) Array<AIModifier> AIModifiers; // Moca: AI modifiers to activate at a given hour(s).
@@ -153,22 +151,6 @@ function SetAILevel(int NewLevel)
 // Rolls a movement opportunity and returns whether or not it was successful
 function bool ShouldMove()
 {
-	Log(CutName $ ": Do we need cams to enter office? " $ bMustWatchCamsToEnter $ " | Is camera being used? " $ CameraManager.bUtilized);
-
-	if ( bMustWatchCamsToEnter && !CameraManager.bUtilized )
-	{
-		Log(CutName $ ": Darnit player isn't looking at cams! i can't enter!!");
-		return false;
-	}
-
-	Log(CutName $ ": Can we be cam stalled? " $ bCanBeCamStalled $ " | Is our camera being watched? " $ CurrDP.RelevantCamera == CameraManager.GetCurrentCamera());
-
-	if ( bCanBeCamStalled && CurrDP.RelevantCamera == CameraManager.GetCurrentCamera() )
-	{
-		Log(CutName $ ": blast it, player is CAM STALLING ME!!");
-		return false;
-	}
-
 	// Get a random number between 1 and MaxAI
 	local int rnd;
 	rnd = Rand(MaxAI + 1);

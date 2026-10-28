@@ -1,9 +1,14 @@
 class MOCAPowerOutManager extends MOCAFNAFManagers;
 
-var() name StartEvent;
-var() name MusicBoxEvent;
-var() name BlackoutEvent;
 var() name JumpscareEvent;
+var() Sound MusicBox;
+var() Sound LightBuzz;
+var() Sound PowerOut;
+var() Sound Footstep;
+var() CutMark TargetCutMark;
+var() TriggerLight FreddyEyes;
+var() TriggerLight OfficeLight;
+var() MOCAAnimatronic Freddy;
 
 var int RandInt;
 var float CurrTimer;
@@ -28,8 +33,22 @@ state stateWaiting
     event BeginState()
     {
         Log("Power out waiting");
-        TriggerEvent(StartEvent, Self, None);
         CurrTimer = 0.0;
+
+		PlaySound(PowerOut, SLOT_Foley);
+
+		local MOCACrosshair CH;
+		foreach AllActors(class'MOCACrosshair', CH)
+		{
+			CH.Destroy();
+		}
+
+		PlayerHarry.ConsoleCommand("hidehud");
+
+		local vector OffsetPos, TargetPos;
+		OffsetPos = PlayerHarry.MapDefault.Location - PlayerHarry.Location;
+		TargetPos = TargetCutMark.Location - OffsetPos;
+		PlayerHarry.SetLocation(TargetPos);
     }
 
     event Tick(float DeltaTime)
@@ -52,6 +71,12 @@ state stateWaiting
         }
         else
         {
+			RandInt = Rand(2);
+			if ( RandInt == 0 )
+			{
+				Freddy.PlaySound(Footstep, SLOT_Foley);
+			}
+
             Goto('begin');
         }
 }
@@ -61,13 +86,23 @@ state stateMusic
     event BeginState()
     {
         Log("Power out music");
-        TriggerEvent(MusicBoxEvent, Self, None);
         CurrTimer = 0.0;
+
+		FreddyEyes.Trigger(Self, None);
+		Freddy.PlaySound(MusicBox, SLOT_Ambient);
     }
 
     event Tick(float DeltaTime)
     {
         CurrTimer += DeltaTime;
+
+		// turn to controller wouldn't work so im doing this
+		local vector TowardHarry;
+		local rotator RotHarry;
+		TowardHarry = PlayerHarry.Location - Freddy.Location;
+		RotHarry = Freddy.Rotation;
+		RotHarry.Yaw = rotator(TowardHarry).Yaw;
+		Freddy.SetRotation(RotHarry);
 
         if ( CurrTimer >= 20.0 )
         {
@@ -94,8 +129,10 @@ state stateBlackout
     event BeginState()
     {
         Log("Power out blackout");
-        TriggerEvent(BlackoutEvent, Self, None);
         CurrTimer = 0.0;
+
+		FreddyEyes.Trigger(Self, None);
+		Freddy.StopSound(MusicBox, SLOT_Ambient);
     }
 
     event Tick(float DeltaTime)
@@ -109,6 +146,26 @@ state stateBlackout
     }
 
     begin:
+		OfficeLight.Trigger(Self, None);
+		PlaySound(LightBuzz, SLOT_Ambient);
+		Sleep(0.1);
+		OfficeLight.Trigger(Self, None);
+		StopSound(LightBuzz, SLOT_Ambient);
+		Sleep(0.1);
+		OfficeLight.Trigger(Self, None);
+		PlaySound(LightBuzz, SLOT_Ambient);
+		Sleep(0.1);
+		OfficeLight.Trigger(Self, None);
+		StopSound(LightBuzz, SLOT_Ambient);
+		Sleep(0.1);
+		OfficeLight.Trigger(Self, None);
+		PlaySound(LightBuzz, SLOT_Ambient);
+		Sleep(0.1);
+		StopSound(LightBuzz, SLOT_Ambient);
+
+		PlayerHarry.bStationary = true;
+
+	loop:
         Sleep(2.0);
         RandInt = Rand(5);
         Log("Rolled a " $ RandInt $ " to progress power out.");
@@ -118,7 +175,13 @@ state stateBlackout
         }
         else
         {
-            Goto('begin');
+			RandInt = Rand(2);
+			if ( RandInt == 0 )
+			{
+				Freddy.PlaySound(Footstep, SLOT_Foley);
+			}
+
+            Goto('loop');
         }
 }
 
