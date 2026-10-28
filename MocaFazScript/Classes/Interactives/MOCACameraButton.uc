@@ -22,6 +22,11 @@ event PostBeginPlay()
 
 function ProcessInteract()
 {
+	if ( !CameraManager.bUtilized )
+	{
+		return;
+	}
+
 	Log("Setting camera to index " $ CameraIndex);
 	CameraManager.SetCamera(CameraIndex);
 

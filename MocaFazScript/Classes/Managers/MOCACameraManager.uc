@@ -178,6 +178,11 @@ function MOCASecurityCamera GetCameraFromIndex(int idx)
 
 function MOCASecurityCamera GetCurrentCamera()
 {
+	if ( !bUtilized )
+	{
+		return None;
+	}
+	
 	return GetCameraFromIndex(CurrCamera);
 }
 

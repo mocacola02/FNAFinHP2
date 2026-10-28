@@ -5,16 +5,19 @@ var() Sound MusicBox;
 var() Sound LightBuzz;
 var() Sound PowerOut;
 var() Sound Footstep;
+var() CutMark ReferenceCutMark;
 var() CutMark TargetCutMark;
 var() TriggerLight FreddyEyes;
 var() TriggerLight OfficeLight;
 var() MOCAAnimatronic Freddy;
+var() MOCAFlickerController FlickerController;
 
 var int RandInt;
 var float CurrTimer;
 
 function Start()
 {
+    PlayerHarry.bBehindView = true;
     GotoState('stateWaiting');
 }
 
@@ -35,18 +38,18 @@ state stateWaiting
         Log("Power out waiting");
         CurrTimer = 0.0;
 
-		local MOCACrosshair CH;
-		foreach AllActors(class'MOCACrosshair', CH)
-		{
-			CH.Destroy();
-		}
-
 		PlayerHarry.ConsoleCommand("hidehud");
 
 		local vector OffsetPos, TargetPos;
-		OffsetPos = PlayerHarry.MapDefault.Location - PlayerHarry.Location;
+		OffsetPos = ReferenceCutMark.Location - PlayerHarry.Location;
 		TargetPos = TargetCutMark.Location - OffsetPos;
-		PlayerHarry.SetLocation(TargetPos);
+        Log("Target is " $ TargetCutMark.Location $ " and we're going to " $ TargetPos);
+		
+        if ( !PlayerHarry.SetLocation(TargetPos) )
+        {
+            Log("Couldn't go to position, forcing to cutmark");
+            PlayerHarry.SetLocation(TargetCutMark.Location);
+        }
     }
 
     event Tick(float DeltaTime)
@@ -90,6 +93,7 @@ state stateMusic
         CurrTimer = 0.0;
 
 		FreddyEyes.Trigger(Self, None);
+        FlickerController.Trigger(Self, None);
 		Freddy.PlaySound(MusicBox, SLOT_Foley);
     }
 
@@ -133,6 +137,7 @@ state stateBlackout
         CurrTimer = 0.0;
 
 		FreddyEyes.Trigger(Self, None);
+        FlickerController.Trigger(Self, None);
 		Freddy.StopSound(MusicBox, SLOT_Foley);
     }
 

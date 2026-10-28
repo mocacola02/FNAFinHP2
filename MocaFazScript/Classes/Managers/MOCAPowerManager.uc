@@ -209,6 +209,7 @@ function CheckPower()
 function UpdatePercentSurface()
 {
 	local string PowerPercent;
+	local int Offset;
 	PowerPercent = ItoA(Clamp(Round((CurrPower / InitialPower) * 100), 0, 99));
 
 	SurfaceModifier.SurfaceTag = TenPlaceTag;
@@ -219,13 +220,14 @@ function UpdatePercentSurface()
 	}
 	else
 	{
+		Offset = 1;
 		SurfaceModifier.NewMaterial = TransparentTex;
 	}
 
 	SurfaceModifier.ModifyLevelSurfaces();
 	
 	SurfaceModifier.SurfaceTag = SinglePlaceTag;
-	SurfaceModifier.NewMaterial = NumberTex[AtoI(CharAt(PowerPercent, 1))];
+	SurfaceModifier.NewMaterial = NumberTex[AtoI(CharAt(PowerPercent, 1 - Offset))];
 	SurfaceModifier.ModifyLevelSurfaces();
 }
 

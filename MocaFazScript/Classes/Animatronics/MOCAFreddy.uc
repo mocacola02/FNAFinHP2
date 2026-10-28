@@ -1,9 +1,21 @@
 class MOCAFreddy extends MOCAAnimatronic;
 
+var int RandInt;
 var float CurrTimer;
+
+function bool IsBeingWatched()
+{
+    return CurrDP.RelevantCamera == CameraManager.GetCurrentCamera();
+}
 
 function MoveToNextDP()
 {
+    if ( IsBeingWatched() || !CameraManager.bUtilized )
+    {
+        Log(CutName $ ": darnit I'm being watched! Or cameras are off");
+        return;
+    }
+
     local MOCADestinationPoint NewDP;
     NewDP = GetNewDestination();
 
@@ -33,13 +45,18 @@ function MoveToNextDP()
     {
         PlaySound(FootstepSound, SLOT_Foley);
     }
+
+    if ( CurrDP.bIsKillPoint )
+    {
+        GotoState('statePendingKill');
+    }
 }
 
 auto state stateInactive
 {
     function HandleMovementOpportunity()
     {
-        if ( AILevel > 0 && !CameraManager.bUtilized )
+        if ( AILevel > 0 && !IsBeingWatched() )
         {
             GotoState('stateWaiting');
         }
@@ -59,7 +76,7 @@ state stateWaiting
 
         if ( CurrTimer >= (1000.0 / 60.0) - (AILevel * (100.0 / 60.0)) )
         {
-            if ( !CameraManager.bUtilized )
+            if ( !IsBeingWatched() )
             {
                 GotoState('stateMove');
             }
@@ -78,6 +95,17 @@ state stateMove
     {
         MoveToNextDP();
     }
+}
 
-    
+state statePendingKill
+{
+    begin:
+        Sleep(1.0);
+
+        RandInt = Rand(5);
+        Log(CutName $ ": Rolled a " $ RandInt $ " to kill, we need 0");
+        if ( RandInt == 0 )
+        {
+            Jumpscare();
+        }
 }

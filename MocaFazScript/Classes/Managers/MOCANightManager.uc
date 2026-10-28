@@ -75,6 +75,7 @@ function StartNight()
 	PlayerHarry.SetBWPercent(NightDesaturation);
 	HPConsole(PlayerHarry.Player.Console).FPSMode();
 	PlayerHarry.Cam.SetZOffset(FirstPersonHeight);
+	PlayerHarry.bBehindView = false;
 
 	StartNightTimer();
 }
@@ -128,6 +129,8 @@ function OnNightEnd()
 {
 	bActive = false;
 	StopNightTimer();
+
+	PlayerHarry.bBehindView = true;
 
 	local MOCAAnimatronic A;
 	foreach AllActors(class'MOCAAnimatronic', A)

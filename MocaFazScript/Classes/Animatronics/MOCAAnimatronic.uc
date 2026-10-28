@@ -290,15 +290,10 @@ function bool CanKill()
 
 function Jumpscare()
 {
-	local MOCACrosshair A;
-	foreach AllActors(class'MOCACrosshair', A)
-	{
-		A.Destroy();
-	}
-
 	ConsoleCommand("hidehud");
 
 	PlayerHarry.bStationary = true;
+	PlayerHarry.bBehindView = true;
 	EmitKillEvent();
 }
 

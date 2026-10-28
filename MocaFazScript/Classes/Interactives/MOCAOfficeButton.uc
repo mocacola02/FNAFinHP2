@@ -10,9 +10,13 @@ enum ButtonPurpose
 
 var() ButtonPurpose ButtonTarget;
 var() name EventToEmit;
+var() name SurfaceTag;
+var() Texture OnTexture;
+var() Texture OffTexture;
 
 var bool bButtonEnabled;
 var MOCAPowerManager PowerManager;
+var SurfaceModifyTrigger SurfaceModifier;
 
 
 event PostBeginPlay()
@@ -28,6 +32,30 @@ event PostBeginPlay()
 	{
 		Log("ERROR: Power manager not found!!");
 	}
+
+	SurfaceModifier = Spawn(class'SurfaceModifyTrigger');
+
+	if ( SurfaceModifier == None )
+	{
+		Log("ERROR: Could not spawn surface modifier");
+	}
+	else
+	{
+		SurfaceModifier.SurfaceTag = SurfaceTag;
+		SurfaceModifier.bChangeMaterial = true;
+	}
+}
+
+function SetOnSurface()
+{
+	SurfaceModifier.NewMaterial = OnTexture;
+	SurfaceModifier.ModifyLevelSurfaces();
+}
+
+function SetOffSurface()
+{
+	SurfaceModifier.NewMaterial = OffTexture;
+	SurfaceModifier.ModifyLevelSurfaces();
 }
 
 // this sucks
@@ -36,6 +64,8 @@ function ProcessInteract()
 	if ( bButtonEnabled )
 	{
 		bButtonEnabled = false;
+
+		SetOffSurface();
 
 		TriggerEvent(EventToEmit, Self, None);
 
@@ -60,6 +90,8 @@ function ProcessInteract()
 	else
 	{
 		bButtonEnabled = true;
+
+		SetOnSurface();
 
 		TriggerEvent(EventToEmit, Self, None);
 
