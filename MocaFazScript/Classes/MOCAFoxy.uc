@@ -8,6 +8,7 @@ var() name RunAnim;
 var() Texture NormalSignTexture;
 var() Texture SpookySignTexture;
 var() Sound BangSound;
+var() Sound RunSound;
 var() MOCADestinationPoint RunStartDP;
 var() Array<SkeletalMesh> CurtainMeshes;
 
@@ -173,7 +174,7 @@ state stateAwaitingRun
 	{
 		WaitTime -= DeltaTime;
 
-		if ( IsSameCameraBeingWatched() )
+		if ( IsSameCameraBeingWatched() || WaitTime <= 0.0 )
 		{
 			Log(CutName $ ": We've been seen, BOOK IT!!!!");
 			GotoState('stateRun');
@@ -202,6 +203,7 @@ state stateRun
 	begin:
 		Log(Cutname $ ": RUNNING NOW!!!!!");
 		PlayAnim(RunAnim);
+		PlaySound(RunSound, SLOT_Foley);
 		Sleep(RunTime);
 		GotoState('stateAttack');
 }

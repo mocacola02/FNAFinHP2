@@ -35,8 +35,6 @@ state stateWaiting
         Log("Power out waiting");
         CurrTimer = 0.0;
 
-		PlaySound(PowerOut, SLOT_Foley);
-
 		local MOCACrosshair CH;
 		foreach AllActors(class'MOCACrosshair', CH)
 		{
@@ -62,6 +60,9 @@ state stateWaiting
     }
 
     begin:
+        Freddy.PlaySound(PowerOut, SLOT_Foley);
+
+    loop:
         Sleep(5.0);
         RandInt = Rand(5);
         Log("Rolled a " $ RandInt $ " to progress power out.");
@@ -77,7 +78,7 @@ state stateWaiting
 				Freddy.PlaySound(Footstep, SLOT_Foley);
 			}
 
-            Goto('begin');
+            Goto('loop');
         }
 }
 
@@ -89,7 +90,7 @@ state stateMusic
         CurrTimer = 0.0;
 
 		FreddyEyes.Trigger(Self, None);
-		Freddy.PlaySound(MusicBox, SLOT_Ambient);
+		Freddy.PlaySound(MusicBox, SLOT_Foley);
     }
 
     event Tick(float DeltaTime)
@@ -132,7 +133,7 @@ state stateBlackout
         CurrTimer = 0.0;
 
 		FreddyEyes.Trigger(Self, None);
-		Freddy.StopSound(MusicBox, SLOT_Ambient);
+		Freddy.StopSound(MusicBox, SLOT_Foley);
     }
 
     event Tick(float DeltaTime)
@@ -147,21 +148,21 @@ state stateBlackout
 
     begin:
 		OfficeLight.Trigger(Self, None);
-		PlaySound(LightBuzz, SLOT_Ambient);
+		PlaySound(LightBuzz, SLOT_Foley);
 		Sleep(0.1);
 		OfficeLight.Trigger(Self, None);
-		StopSound(LightBuzz, SLOT_Ambient);
+		StopSound(LightBuzz, SLOT_Foley);
 		Sleep(0.1);
 		OfficeLight.Trigger(Self, None);
-		PlaySound(LightBuzz, SLOT_Ambient);
+		PlaySound(LightBuzz, SLOT_Foley);
 		Sleep(0.1);
 		OfficeLight.Trigger(Self, None);
-		StopSound(LightBuzz, SLOT_Ambient);
+		StopSound(LightBuzz, SLOT_Foley);
 		Sleep(0.1);
 		OfficeLight.Trigger(Self, None);
-		PlaySound(LightBuzz, SLOT_Ambient);
+		PlaySound(LightBuzz, SLOT_Foley);
 		Sleep(0.1);
-		StopSound(LightBuzz, SLOT_Ambient);
+		StopSound(LightBuzz, SLOT_Foley);
 
 		PlayerHarry.bStationary = true;
 

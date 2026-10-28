@@ -39,7 +39,7 @@ auto state stateInactive
 {
     function HandleMovementOpportunity()
     {
-        if ( !CameraManager.bUtilized )
+        if ( AILevel > 0 && !CameraManager.bUtilized )
         {
             GotoState('stateWaiting');
         }
