@@ -189,6 +189,7 @@ state statePendingKill
     event BeginState()
     {
         Log(CutName $ ": I'M PENDING KILL!");
+        bHidden = true;
     }
 
     event Tick(float DeltaTime)
