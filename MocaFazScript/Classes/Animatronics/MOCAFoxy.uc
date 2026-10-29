@@ -9,6 +9,7 @@ var() Texture NormalSignTexture;
 var() Texture SpookySignTexture;
 var() Sound BangSound;
 var() Sound RunSound;
+var() Sound HumSound;
 var() MOCADestinationPoint RunStartDP;
 var() Array<SkeletalMesh> CurtainMeshes;
 
@@ -131,6 +132,14 @@ auto state stateAtCove
 			}
 		}
 	}
+
+	begin:
+		Sleep(5.0);
+		if ( Rand(30) == 0 )
+		{
+			PlaySound(HumSound, SLOT_Foley);
+		}
+		Goto('begin');
 }
 
 state stateAwaitingRun
