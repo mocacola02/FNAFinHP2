@@ -38,6 +38,8 @@ state stateWaiting
         Log("Power out waiting");
         CurrTimer = 0.0;
 
+        Freddy.bHidden = true;
+
 		PlayerHarry.ConsoleCommand("hidehud");
 
 		local vector OffsetPos, TargetPos;
@@ -63,7 +65,8 @@ state stateWaiting
     }
 
     begin:
-        Freddy.PlaySound(PowerOut, SLOT_Foley);
+        SleepForTick();
+        PlayerHarry.Cam.PlaySound(PowerOut, SLOT_Foley,,,,, true);
 
     loop:
         Sleep(5.0);
@@ -75,8 +78,8 @@ state stateWaiting
         }
         else
         {
-			RandInt = Rand(2);
-			if ( RandInt == 0 )
+			RandInt = Rand(4);
+			if ( RandInt == 0 && !Freddy.IsPlayingSound(Footstep) )
 			{
 				Freddy.PlaySound(Footstep, SLOT_Foley);
 			}
@@ -89,6 +92,8 @@ state stateMusic
 {
     event BeginState()
     {
+        Freddy.bHidden = false;
+
         Log("Power out music");
         CurrTimer = 0.0;
 
@@ -133,6 +138,8 @@ state stateBlackout
 {
     event BeginState()
     {
+        Freddy.bHidden = true;
+
         Log("Power out blackout");
         CurrTimer = 0.0;
 
@@ -181,8 +188,8 @@ state stateBlackout
         }
         else
         {
-			RandInt = Rand(2);
-			if ( RandInt == 0 )
+			RandInt = Rand(4);
+			if ( RandInt == 0 && !Freddy.IsPlayingSound(Footstep) )
 			{
 				Freddy.PlaySound(Footstep, SLOT_Foley);
 			}
@@ -195,6 +202,8 @@ state stateJumpscare
 {
     event BeginState()
     {
+        Freddy.StopAllSounds();
         TriggerEvent(JumpscareEvent, Self, None);
+        GotoState('stateInactive');
     }
 }

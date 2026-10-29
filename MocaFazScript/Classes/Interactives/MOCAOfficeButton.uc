@@ -13,6 +13,10 @@ var() name EventToEmit;
 var() name SurfaceTag;
 var() Texture OnTexture;
 var() Texture OffTexture;
+var() Sound StingerSound;
+var() Sound ErrorSFX;
+
+var bool bBtnDisabled;
 
 var bool bButtonEnabled;
 var MOCAPowerManager PowerManager;
@@ -63,6 +67,12 @@ function SetOffSurface()
 // this sucks
 function ProcessInteract()
 {
+	if ( bBtnDisabled )
+	{
+		PlaySound(ErrorSFX, SLOT_Foley);
+		return;
+	}
+
 	if ( bButtonEnabled )
 	{
 		bButtonEnabled = false;
@@ -107,12 +117,31 @@ function ProcessInteract()
 				break;
 			case BP_LeftLight:
 				PowerManager.bLeftLightOn = true;
+				PlayStinger();
 				break;
 			case BP_RightLight:
 				PowerManager.bRightLightOn = true;
+				PlayStinger();
 				break;
 			default:
 				break;
+		}
+	}
+}
+
+function PlayStinger()
+{
+	local MOCAAnimatronic A;
+	foreach AllActors(class'MOCAAnimatronic', A)
+	{
+		if ( ( A.DoorToAttack == DTA_Left && ButtonTarget == BP_LeftLight ) || ( A.DoorToAttack == DTA_Right && ButtonTarget == BP_RightLight) )
+		{
+			if ( !A.bStingerCooldown && A.CurrDP.bIsKillPoint )
+			{
+				A.bStingerCooldown = true;
+				A.PlaySound(StingerSound, SLOT_Effect);
+				return;
+			}
 		}
 	}
 }

@@ -1,5 +1,17 @@
 class MOCAFreddy extends MOCAAnimatronic;
 
+var() MOCAAnimatronic Bonnie;
+var() MOCAAnimatronic Chica;
+
+var() MOCADestinationPoint FinalDP;
+var() MOCADestinationPoint MusicBoxDP;
+var() MOCADestinationPoint PreFinalDP;
+var() MOCADestinationPoint BackupDP;
+
+var() Sound MusicBox;
+
+var() bool bAboutToKill;
+
 var int RandInt;
 var float CurrTimer;
 
@@ -8,25 +20,73 @@ function bool IsBeingWatched()
     return CurrDP.RelevantCamera == CameraManager.GetCurrentCamera();
 }
 
+function HandleMovementOpportunity()
+{
+    return;
+}
+
 function MoveToNextDP()
 {
-    if ( IsBeingWatched() || !CameraManager.bUtilized )
+    if ( !Bonnie.bHasMoved || !Chica.bHasMoved )
     {
-        Log(CutName $ ": darnit I'm being watched! Or cameras are off");
+        return;
+    }
+
+    if ( IsBeingWatched() )
+    {
+        Log(CutName $ ": darnit I'm being watched!");
         return;
     }
 
     local MOCADestinationPoint NewDP;
-    NewDP = GetNewDestination();
+    local Sound FootstepSound;
 
+    if ( CurrDP == PreFinalDP )
+    {
+        NewDP = FinalDP;
+    }
+    else
+    {
+        NewDP = GetNewDestination();
+    }
+    
     if ( NewDP == None )
     {
         Log(CutName $ ": Could not find a new destination!!!");
         return;
     }
 
-    CurrDP.StopOccupiedSound();
-    NewDP.PlayOccupiedSound();
+    if ( NewDP.RelevantCamera == CameraManager.GetCurrentCamera() )
+    {
+        Log(CutName $ ": rats, my DP is being watched! staying here");
+        return;
+    }
+
+    if ( NewDP.bIsKillPoint )
+    {
+        if ( PowerManager.bRightDoorClosed || !CameraManager.bUtilized || IsBeingWatched() || CameraManager.GetCurrentCamera() == None )
+        {
+            Log(CutName $ ": GOING TO BACKUP! Can't get to kill point cuz this dang door is closed! Or cameras are off");
+            NewDP = BackupDP;
+        }
+        else
+        {
+            bAboutToKill = true;
+
+            Log(CutName $ ": I'M AT A KILL POINT!!!!!!!");
+
+            FootstepSound = GetFootstepSound();
+
+            if ( FootstepSound != None )
+            {
+                PlaySound(FootstepSound, SLOT_Foley);
+            }
+
+            GotoState('statePendingKill');
+
+            return;
+        }
+    }
 
     TriggerEvent(CurrDP.EventOnMove, Self, Self);
     TriggerEvent(NewDP.EventOnMove, Self, Self);
@@ -38,7 +98,6 @@ function MoveToNextDP()
     SetRotation(NewDP.Rotation);
     PlayAnim(CurrDP.AnimToPlay);
 
-    local Sound FootstepSound;
     FootstepSound = GetFootstepSound();
 
     if ( FootstepSound != None )
@@ -46,9 +105,13 @@ function MoveToNextDP()
         PlaySound(FootstepSound, SLOT_Foley);
     }
 
-    if ( CurrDP.bIsKillPoint )
+    if ( NewDP == MusicBoxDP )
     {
-        GotoState('statePendingKill');
+        PlaySound(MusicBox, SLOT_Effect);
+    }
+    else
+    {
+        StopSound(MusicBox, SLOT_Effect);
     }
 }
 
@@ -60,7 +123,20 @@ auto state stateInactive
         {
             GotoState('stateWaiting');
         }
+        else if ( AILevel <= 0 )
+        {
+            Log(CutName $ ": Can't move cuz i'm AI 0");
+        }
+        else
+        {
+            Log(CutName $ ": Can't move cuz im being watched");
+        }
     }
+
+    begin:
+        Sleep(2.0);
+        Log(CutName $ ": I'm inactive...");
+        Goto('begin');
 }
 
 state stateWaiting
@@ -83,22 +159,43 @@ state stateWaiting
         }
     }
 
-    function HandleMovementOpportunity()
-    {
-        return;
-    }
+    begin:
+        Sleep(0.5);
+        Log(CutName $ ": I'm waiting for " $ CurrTimer);
+        Goto('begin');
 }
 
 state stateMove
 {
     event BeginState()
     {
+        Log(CutName $ ": I'm moving!");
         MoveToNextDP();
+
+        if ( !bAboutToKill )
+        {
+            GotoState('stateInactive');
+        }
     }
 }
 
 state statePendingKill
 {
+    function MoveToNextDP()
+    {
+        return;
+    }
+
+    event BeginState()
+    {
+        Log(CutName $ ": I'M PENDING KILL!");
+    }
+
+    event Tick(float DeltaTime)
+    {
+        return;
+    }
+
     begin:
         Sleep(1.0);
 
@@ -107,5 +204,9 @@ state statePendingKill
         if ( RandInt == 0 )
         {
             Jumpscare();
+        }
+        else
+        {
+            Goto('begin');
         }
 }

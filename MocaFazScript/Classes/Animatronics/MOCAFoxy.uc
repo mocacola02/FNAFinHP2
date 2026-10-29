@@ -83,20 +83,6 @@ function UpdateSurface(Texture NewTexture)
 	SurfaceModifier.ModifyLevelSurfaces();
 }
 
-function bool IsPlayingSound(Sound SoundToTest)
-{
-	local int i;
-	for ( i = 0; i < PlayingSounds.Length; i++ )
-	{
-		if ( PlayingSounds[i].Sound == SoundToTest )
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 auto state stateAtCove
 {
 	function HandleMovementOpportunity()
@@ -196,13 +182,13 @@ state stateRun
 	event Tick(float DeltaTime)
 	{
 		local vector NewPos;
-		NewPos = Location - vec(768.0 * DeltaTime, 0.0, 0.0);
+		NewPos = Location - vec(614.0 * DeltaTime, 0.0, 0.0);
 		SetLocation(NewPos);
 	}
 
 	begin:
 		Log(Cutname $ ": RUNNING NOW!!!!!");
-		PlayAnim(RunAnim);
+		LoopAnim(RunAnim, 2.0);
 		PlaySound(RunSound, SLOT_Foley);
 		Sleep(RunTime);
 		GotoState('stateAttack');
@@ -247,23 +233,7 @@ state stateAttack
 				return;
 			}
 
-			Log(CutName $ ": Our CurrDP is " $ CurrDP $ " with the camera " $ CurrDP.RelevantCamera $ " and the current camera is " $ CameraManager.GetCurrentCamera());
-
-			// If we're looking at the pre-movement position, block cams
-			if ( CurrDP != None && CameraManager.GetCurrentCamera() == CurrDP.RelevantCamera )
-			{
-				Log(CutName $ ": screw you and your cameras, BLOCKED");
-				CameraManager.BlockCams();
-			}
-
-			Log(CutName $ ": Our NewDP is " $ NewDP $ " with the camera " $ NewDP.RelevantCamera $ " and the current camera is " $ CameraManager.GetCurrentCamera());
-
-			// If we're looking at the destination position, block cams
-			if ( CameraManager.GetCurrentCamera() == NewDP.RelevantCamera )
-			{
-				Log(CutName $ ": screw you and your cameras, BLOCKED");
-				CameraManager.BlockCams();
-			}
+			CameraManager.BlockCams();
 
 			CurrDP = NewDP;
 			SetLocation(NewDP.Location);

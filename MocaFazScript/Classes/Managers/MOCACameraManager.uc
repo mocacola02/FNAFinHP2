@@ -221,7 +221,11 @@ function Sound GetBlockedSFX()
 function UnblockCams()
 {
 	bBlocked = false;
-	UpdateSurface();
+
+	if ( bUtilized )
+	{
+		UpdateSurface();
+	}
 }
 
 // Updates the camera screen surface to a new camera screen, or blank if bBlank

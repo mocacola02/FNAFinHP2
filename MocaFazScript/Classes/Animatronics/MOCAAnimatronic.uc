@@ -13,6 +13,17 @@ struct AIModifier
 	var() int AIToAdd;			// Moca: What AI level to add at a given hour.
 };
 
+struct SoundEvent
+{
+	var() bool bLoop;
+	var() float LoopDelay;
+	var() MOCADestinationPoint RelevantDP;
+	var() Array<Sound> SoundsToPlay;
+	var() ESoundSlot SlotToPlayOn;
+
+	var Sound CurrSound;
+};
+
 var() name EventOnKill;	// Moca: What event to emit when killing the player
 var() name KillSpotTag;	// Moca: Tag of the CutMark to place us at during kill animation
 var() name JumpscareAnim;
@@ -27,12 +38,19 @@ var(MOCAAnimatronicAI) float MoveInterval;	// Moca: How often to have a movement
 var(MOCAAnimatronicSFX) Sound WarbledVoiceSFX;		// Moca: Warbled voice sound effect (sound played on Nights 4+ while in the west and east corners)
 var(MOCAAnimatronicSFX) Array<Sound> FootstepSFX;	// Moca: Array of footstep sounds to play on movement
 var(MOCAAnimatronicSFX) Array<Sound> GotInSFX;		// Moca: Array of sounds to play when entering the office, before killing the player
+var(MOCAAnimatronicSFX) Array<SoundEvent> DPSFX;
 
+var bool bHasMoved;
+var bool bStingerCooldown;
 var bool bKillingPlayer;
+var float SETimer;
+var SoundEvent CurrSE;
 var MOCADestinationPoint CurrDP;
 var MOCACameraManager CameraManager;
 var MOCAPowerManager PowerManager;
+var SoundEvent BlankSE;
 
+var Sound GotInSound;
 
 //================
 // Native Events
@@ -151,6 +169,11 @@ function SetAILevel(int NewLevel)
 // Rolls a movement opportunity and returns whether or not it was successful
 function bool ShouldMove()
 {
+	if ( AILevel <= 0 )
+	{
+		return false;
+	}
+
 	// Get a random number between 1 and MaxAI
 	local int rnd;
 	rnd = Rand(MaxAI + 1);
@@ -192,12 +215,12 @@ function HandleMovementOpportunity()
 		{
 			if ( DoorToAttack == DTA_Left && !PowerManager.bLeftDoorClosed && CanKill() )
 			{
-				Jumpscare();
+				GetIn();
 				return;
 			}
 			else if ( DoorToAttack == DTA_Right && !PowerManager.bRightDoorClosed && CanKill() )
 			{
-				Jumpscare();
+				GetIn();
 				return;
 			}
 		}
@@ -220,8 +243,10 @@ function HandleMovementOpportunity()
 			CameraManager.BlockCams();
 		}
 
-		CurrDP.StopOccupiedSound();
-		NewDP.PlayOccupiedSound();
+		if ( CurrSE != BlankSE )
+		{
+			StopSoundEvent();
+		}
 
 		TriggerEvent(CurrDP.EventOnMove, Self, Self);
 		TriggerEvent(NewDP.EventOnMove, Self, Self);
@@ -253,12 +278,23 @@ function HandleMovementOpportunity()
 		SetRotation(NewDP.Rotation);
 		PlayAnim(CurrDP.AnimToPlay);
 
+		bHasMoved = true;
+		bStingerCooldown = false;
+
 		local Sound FootstepSound;
 		FootstepSound = GetFootstepSound();
 
 		if ( FootstepSound != None )
 		{
 			PlaySound(FootstepSound, SLOT_Foley);
+		}
+
+		local SoundEvent NewSE;
+		NewSE = GetSoundEvent(NewDP);
+
+		if ( NewSE != BlankSE )
+		{
+			DoSoundEvent(NewSE);
 		}
 	}
 }
@@ -275,6 +311,11 @@ function MOCADestinationPoint GetNewDestination()
 
 function bool CanKill()
 {
+	if ( AILevel <= 0 )
+	{
+		return false;
+	}
+
 	local MOCAAnimatronic A;
 
 	foreach AllActors(class'MOCAAnimatronic', A)
@@ -288,8 +329,57 @@ function bool CanKill()
 	return true;
 }
 
+function GetIn()
+{
+	if ( AILevel <= 0 )
+	{
+		return;
+	}
+
+	local MOCAOfficeButton Button;
+	foreach AllActors(class'MOCAOfficeButton', Button)
+	{
+		if ( ( Button.ButtonTarget == BP_LeftLight && PowerManager.bLeftLightOn ) || ( Button.ButtonTarget == BP_RightLight && PowerManager.bRightLightOn ) )
+		{
+			Log(CutName $ ": Disabling light");
+			Button.ProcessInteract();
+		}
+
+		Button.bBtnDisabled = true;
+	}
+
+	SetTimer(RandRange(0.5, 2.0), false, 'PlayBreathing');
+}
+
+function PlayBreathing()
+{
+	if ( GotInSFX.Length > 0 )
+	{
+		local int GIRand;
+		GIRand = Rand(GotInSFX.Length);
+		GotInSound = GotInSFX[GIRand];
+		PlaySound(GotInSound, SLOT_Foley);
+	}
+
+	SetTimer(RandRange(2.25, 5.0), false, 'Jumpscare');
+}
+
 function Jumpscare()
 {
+	if ( AILevel <= 0 )
+	{
+		return;
+	}
+
+	StopSound(GotInSound, SLOT_Foley);
+
+	if ( PowerManager.CurrPower <= 0.0 )
+	{
+		return;
+	}
+
+	bKillingPlayer = true;
+
 	ConsoleCommand("hidehud");
 
 	PlayerHarry.bStationary = true;
@@ -313,6 +403,105 @@ function StopAllSounds()
 	for ( i = 0; i < PlayingSounds.Length; i++ )
 	{
 		StopSound(PlayingSounds[i].Sound, PlayingSounds[i].Slot, 0.0);
+	}
+}
+
+function bool IsPlayingSound(Sound SoundToTest)
+{
+	local int i;
+	for ( i = 0; i < PlayingSounds.Length; i++ )
+	{
+		if ( PlayingSounds[i].Sound == SoundToTest )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function DoSoundEvent(SoundEvent NewSE)
+{
+	StopSoundEvent();
+	CurrSE = NewSE;
+	GotoState('statePlayingSound');
+}
+
+function Sound GetSESound()
+{
+	if ( CurrSE.SoundsToPlay.Length <= 0 )
+	{
+		return None;
+	}
+
+	local int SEInt;
+	SEInt = Rand(CurrSE.SoundsToPlay.Length);
+	return CurrSE.SoundsToPlay[SEInt];
+}
+
+function SoundEvent GetSoundEvent(MOCADestinationPoint TestDP)
+{
+	local int i;
+	for ( i = 0; i < DPSFX.Length; i++ )
+	{
+		if ( DPSFX[i].RelevantDP == TestDP )
+		{
+			return DPSFX[i];
+		}
+	}
+
+	return BlankSE;
+}
+
+function StopSoundEvent()
+{
+	StopSound(CurrSE.CurrSound, CurrSE.SlotToPlayOn);
+	SETimer = 0.0;
+	CurrSE = BlankSE;
+	GotoState('stateNormal');
+}
+
+auto state stateNormal
+{
+}
+
+state statePlayingSound
+{
+	event BeginState()
+	{
+		SETimer = 0.0;
+		CurrSE.CurrSound = GetSESound();
+		PlaySound(CurrSE.CurrSound, CurrSE.SlotToPlayOn);
+	}
+
+	event Tick(float DeltaTime)
+	{
+		Global.Tick(DeltaTime);
+
+		if ( CurrSE == BlankSE )
+		{
+			return;
+		}
+
+		if ( IsPlayingSound(CurrSE.CurrSound) )
+		{
+			return;
+		}
+
+		if ( !CurrSE.bLoop )
+		{
+			return;
+		}
+
+		SETimer += DeltaTime;
+
+		if ( SETimer >= CurrSE.LoopDelay )
+		{
+			SETimer = 0.0;
+
+			CurrSE.CurrSound = GetSESound();
+			PlaySound(CurrSE.CurrSound, CurrSE.SlotToPlayOn);
+		}
 	}
 }
 
